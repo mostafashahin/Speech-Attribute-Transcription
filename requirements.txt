@@ -1,0 +1,11 @@
+datasets==2.17.0
+jupyterlab
+ipywidgets
+soundfile
+librosa
+transformers
+speechbrain
+deep-phonemizer
+numpy==1.25.2
+evaluate
+jiwer
