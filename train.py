@@ -1,5 +1,3 @@
-import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 import fire
 import logging
 import sys
@@ -148,23 +146,27 @@ class TrainSAModel():
     def __init__(self, config_file):
         # Read YAML file
         logger.info('Init Object')
-        with open("config.yaml", 'r') as stream:
+        with open(config_file, 'r') as stream:
             try:
                 config = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
         if torch.cuda.is_available():
             self.accelerate = True
-            self.device = torch.device('cuda:0')
+            self.device = torch.device('cuda')
             self.n_devices = torch.cuda.device_count()
+            assert self.n_devices == 1, 'Support only single GPU. Please use CUDA_VISIBLE_DEVICES=gpu_index if you have multiple gpus' #Currently support only single gpu
         else:
             self.device = torch.device('cpu')
             self.n_devices = 1
-            
-        self.working_dir = config['output']['working_dir']
-        makedirs(self.working_dir, exist_ok=True)
-
+        try:    
+            self.working_dir = config['output']['working_dir']
+            makedirs(self.working_dir, exist_ok=True)
+        except Exception as e:
+            logger.error(f'Failed to create working dir in {self.working_dir}')
+            raise
         
+        logger.info('Loading Configuration...')
         self.dataset_path = config['datasets']['data_path']
         self.train_part = [x.strip() for x in config['datasets']['train_part'].split(',')]
         self.validation_part = [x.strip() for x in config['datasets']['validation_part'].split(',')]
@@ -445,19 +447,18 @@ class TrainSAModel():
         self.processor.save_pretrained(self.saved_model_path)
 
 
-    def train_SA_model(self):
-        t.load_attribute_list()
-        t.load_p2a_map()
-        t.create_binary_groups()
-        t.create_phoneme_binary_mappers()
-        t.create_processor()
-        #t.load_preprocess_data()
-        t.load_data()
-        t.prepare_trainer()
-        t.trainer.train()
-        t.save_model()
+    def train_SA_model(self, resume_from_checkpoint=False):
+        self.load_attribute_list()
+        self.load_p2a_map()
+        self.create_binary_groups()
+        self.create_phoneme_binary_mappers()
+        self.create_processor()
+        self.load_data()
+        self.prepare_trainer()
+        self.trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+        self.save_model()
         if self.auto_eval:
-            t.evaluate_SA_model()
+            self.evaluate_SA_model()
 
     def map_to_result(self, batch):
         input_values = self.processor(

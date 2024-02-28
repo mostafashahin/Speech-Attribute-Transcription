@@ -9,3 +9,6 @@ deep-phonemizer
 numpy==1.25.2
 evaluate
 jiwer
+fire
+torchvision==0.17.0
+torch==2.2.0
