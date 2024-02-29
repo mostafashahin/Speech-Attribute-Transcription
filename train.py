@@ -496,10 +496,10 @@ class TrainSAModel():
         self.model.eval()
         #self.model.to(self.device)
         
-        t.load_attribute_list()
-        t.load_p2a_map()
-        t.create_binary_groups()
-        t.create_phoneme_binary_mappers()
+        self.load_attribute_list()
+        self.load_p2a_map()
+        self.create_binary_groups()
+        self.create_phoneme_binary_mappers()
         
         test_data_loaded = False
         if eval_data:
