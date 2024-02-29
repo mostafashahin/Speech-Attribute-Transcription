@@ -16,7 +16,7 @@ preprocessor:
     return_attention_mask: false
     phoneme_column: 'phoneme_dp'
     do_phonemize: false
-    num_proc: 1 #Number of processors for preprocessing the dataset. Number of CPUs
+    num_proc: 5 #Number of processors for preprocessing the dataset. Number of CPUs
     max_length_in_sec: 15 #Speech files longer than 15 seconds will be filtered out due to CUDA out-of-memory error
     save_preprocessed_data: true #will be saved in working_dir/preprocessed_data
     load_from_preprocessed_data: true #will be loaded from working_dir/preprocessed_data if exist else perprocess it

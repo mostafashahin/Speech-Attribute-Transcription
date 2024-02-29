@@ -20,17 +20,12 @@ import evaluate
 logger = logging.getLogger(__name__)
 # Setup logging
 logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler('log')
 console_handler = logging.StreamHandler()
 formater = logging.Formatter(fmt="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",)
-file_handler.setFormatter(formater)
-file_handler.setLevel(logging.DEBUG)
-
 console_handler.setFormatter(formater)
 console_handler.setLevel(logging.INFO)
 
-logger.addHandler(file_handler)
 logger.addHandler(console_handler)
 
 
@@ -162,6 +157,10 @@ class TrainSAModel():
         try:    
             self.working_dir = config['output']['working_dir']
             makedirs(self.working_dir, exist_ok=True)
+            file_handler = logging.FileHandler(join(self.working_dir,'log'))
+            file_handler.setFormatter(formater)
+            file_handler.setLevel(logging.DEBUG)
+            logger.addHandler(file_handler)
         except Exception as e:
             logger.error(f'Failed to create working dir in {self.working_dir}')
             raise
