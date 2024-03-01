@@ -145,7 +145,8 @@ class TrainSAModel():
             try:
                 config = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                print(exc)
+                logger.error(exc)
+                raise
         if torch.cuda.is_available():
             self.accelerate = True
             self.device = torch.device('cuda')
