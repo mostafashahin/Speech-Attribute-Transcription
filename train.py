@@ -508,12 +508,14 @@ class TrainSAModel():
                 logger.error(f'Failed to load data at {eval_data}')
                 raise
             if eval_parts:
+                logger.info(f'Performing evaluation of {eval_parts} of {eval_data}')
                 try:
-                    data_test = DatasetDict(dict([(k,data[k]) for k in eval_parts.split(',')]))
+                    eval_parts = eval_parts if isinstance(eval_parts,tuple) else (eval_parts,)
+                    data_test = DatasetDict(dict([(k,data[k]) for k in eval_parts]))
                     self.data_test = self.preprocess_data(data_test, bTraining=False)
                     test_data_loaded = True
                 except KeyError:
-                    logger.warning('One or more of the eval parts specified in yaml file are not exist in the dataset, test data will be ignored')
+                    logger.warning('One or more of the given eval parts  are not exist in the dataset, missing data will be ignored')
             else:
                 self.data_test = self.preprocess_data(data, bTraining=False)
                 test_data_loaded = True
@@ -536,7 +538,7 @@ class TrainSAModel():
                         self.data_test = self.preprocess_data(data_test, bTraining=False)
                         test_data_loaded = True
                     except KeyError:
-                        logger.warning('One or more of the eval parts specified in yaml file are not exist in the dataset, test data will be ignored')
+                        logger.warning('One or more of the eval parts specified in yaml file are not exist in the dataset, missing data will be ignored')
                 else:
                     self.data_test = self.preprocess_data(data, bTraining=False)
                     test_data_loaded = True
