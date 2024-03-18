@@ -211,6 +211,7 @@ class TrainSAModel():
         self.eval_extra_data = config['evaluation'].get('eval_extra_data', '')
         self.eval_extra_data_parts = config['evaluation'].get('eval_extra_data_parts', '').split(',')
         self.auto_eval = config['evaluation']['auto_eval']
+        self.eval_extra_data_phoneme_col = config['evaluation'].get('eval_extra_data_phoneme_col', self.phoneme_column)
 
         
     def load_attribute_list(self):
@@ -487,7 +488,7 @@ class TrainSAModel():
     
         return batch
         
-    def evaluate_SA_model(self, eval_data=None, eval_parts=None):
+    def evaluate_SA_model(self, eval_data=None, eval_parts=None, suffix=None, phoneme_column=None):
         #Load the model and processor deafult at working_dir/fine_tune/best could be overridden from the yaml file by setting 
         #value for evaluation->trained_model_path
         self.processor = Wav2Vec2Processor.from_pretrained(self.trained_model_path)
@@ -503,6 +504,8 @@ class TrainSAModel():
         
         test_data_loaded = False
         if eval_data:
+            if phoneme_column:
+                self.phoneme_column=phoneme_column
             try:
                 data = load_from_disk(eval_data)
             except Exception as e:
@@ -528,6 +531,7 @@ class TrainSAModel():
 
         if not test_data_loaded:
             if self.eval_extra_data:
+                self.phoneme_column = self.eval_extra_data_phoneme_col
                 try:
                     data = load_from_disk(self.eval_extra_data)
                 except Exception as e:
@@ -548,7 +552,10 @@ class TrainSAModel():
             self.model.to(self.device)
             isdict = isinstance(self.data_test, DatasetDict)
 
-            suffix = '_'.join(self.data_test.keys()) if isdict else 'testset'
+            if suffix:
+                suffix = f"{suffix}_{'_'.join(self.data_test.keys()) if isdict else 'testset'}"
+            else:
+                suffix = '_'.join(self.data_test.keys()) if isdict else 'testset'
             
             self.results = self.data_test.map(self.map_to_result, batched=False, load_from_cache_file=False)
             self.results.save_to_disk(join(self.working_dir,f"results_{suffix}.db"))
