@@ -392,7 +392,9 @@ class TrainSAModel():
                 logger.warning('One or more of the test parts specified in yaml file are not exist in the dataset, test data will be ignored')
         
     
-    def preprocess_data(self, data, bTraining=True):
+    def preprocess_data(self,
+                        data,
+                        bTraining=True):
         
         data = data.filter(lambda x:len(x['audio']['array']) < self.max_length_in_sec*x['audio']['sampling_rate'], num_proc=self.num_proc)
         data = data.map(self._create_att_targets, batched=True, batch_size=8, num_proc=self.num_proc)
@@ -488,9 +490,15 @@ class TrainSAModel():
     
         return batch
         
-    def evaluate_SA_model(self, eval_data=None, eval_parts=None, suffix=None, phoneme_column=None):
+    def evaluate_SA_model(self,
+                          eval_data=None,
+                          eval_parts=None,
+                          suffix=None,
+                          phoneme_column=None):
+        
         #Load the model and processor deafult at working_dir/fine_tune/best could be overridden from the yaml file by setting 
         #value for evaluation->trained_model_path
+        logger.info(f'Load Model for evaluation from {self.trained_model_path}')
         self.processor = Wav2Vec2Processor.from_pretrained(self.trained_model_path)
         self.model = Wav2Vec2ForCTC.from_pretrained(self.trained_model_path)
 
@@ -503,6 +511,7 @@ class TrainSAModel():
         self.create_phoneme_binary_mappers()
         
         test_data_loaded = False
+        
         if eval_data:
             if phoneme_column:
                 self.phoneme_column=phoneme_column
@@ -516,18 +525,19 @@ class TrainSAModel():
                 try:
                     eval_parts = eval_parts if isinstance(eval_parts,tuple) else (eval_parts,)
                     data_test = DatasetDict(dict([(k,data[k]) for k in eval_parts]))
-                    self.data_test = self.preprocess_data(data_test, bTraining=False)
-                    test_data_loaded = True
                 except KeyError:
                     logger.warning('One or more of the given eval parts  are not exist in the dataset, missing data will be ignored')
+                self.data_test = self.preprocess_data(data_test, bTraining=False)
+                test_data_loaded = True
             else:
+                logger.info(f'Performing evaluation of {eval_data}')
                 self.data_test = self.preprocess_data(data, bTraining=False)
                 test_data_loaded = True
-
-        
-        if hasattr(self,'data_test'): #The object already has test data loaded, this case when load_data already called for training
-            if isinstance(self.data_test, DatasetDict) or isinstance(self.data_test, Dataset):
-                test_data_loaded = True
+        else: #If eval_data not passed from the command line, check if the dataset is already loaded. 
+            if hasattr(self,'data_test'): #The object already has test data loaded, this case when load_data already called for training
+                if isinstance(self.data_test, DatasetDict) or isinstance(self.data_test, Dataset):
+                    logger.info(f'Performing evaluation of {self.test_part} of {self.dataset_path}')
+                    test_data_loaded = True
 
         if not test_data_loaded:
             if self.eval_extra_data:
@@ -538,17 +548,20 @@ class TrainSAModel():
                     logger.error(f'Failed to load data at {self.eval_extra_data}')
                     raise
                 if self.eval_extra_data_parts[0]:
+                    logger.info(f'Performing evaluation of {self.eval_extra_data_parts} of {self.eval_extra_data}')
                     try:
                         data_test = DatasetDict(dict([(k,data[k]) for k in self.eval_extra_data_parts]))
-                        self.data_test = self.preprocess_data(data_test, bTraining=False)
-                        test_data_loaded = True
                     except KeyError:
                         logger.warning('One or more of the eval parts specified in yaml file are not exist in the dataset, missing data will be ignored')
+                    self.data_test = self.preprocess_data(data_test, bTraining=False)
+                    test_data_loaded = True
                 else:
+                    logger.info(f'Performing evaluation of {self.eval_extra_data}')
                     self.data_test = self.preprocess_data(data, bTraining=False)
                     test_data_loaded = True
         
         if test_data_loaded:
+            logger.info(f'Phonemes for evaluation read from {self.phoneme_column} column')
             self.model.to(self.device)
             isdict = isinstance(self.data_test, DatasetDict)
 
@@ -575,6 +588,7 @@ class TrainSAModel():
                         pred = [item[g] for item in self.results['pred_str']]
                         target = [item[g] for item in self.results['target_text']]
                         print("Test group {} AER: {:.5f}".format(self.groups[g][0].replace('p_',''),metric.compute(predictions=pred, references=target)),file=f)
+            logger.info(f'Results dataset saved in {join(self.working_dir,f"results_{suffix}.db")} and the results saved in {join(self.working_dir,f"results_{suffix}.txt")}')
         
 
 
