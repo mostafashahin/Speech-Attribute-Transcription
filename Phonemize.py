@@ -16,6 +16,8 @@ class phonemization:
         self.dp_phonemizer_model_path = join('models','d_phonemizer','en_us_cmudict_forward.pt')
         self.sb_phonemizer_model_path = join('models','sb_phonemizer')
 
+        
+        self.cmu_dict = cmudict.dict()
         self.dp_phonemizer = Phonemizer.from_checkpoint(self.dp_phonemizer_model_path)
         if torch.cuda.is_available():
             self.sb_phonemizer = GraphemeToPhoneme.from_hparams(self.sb_phonemizer_model_path,run_opts={"device":"cuda"})
@@ -24,8 +26,25 @@ class phonemization:
         self.normalize = False
 
     
+
+        
+        
     def dp_phonemize(self, text):
         return self.dp_phonemizer(text, lang='en_us',expand_acronyms=False).replace('[',' ').replace(']',' ').split()
+    
+    
+    def cmu_phonemize(self, 
+                      text, 
+                      fallback_phonemizer=dp_phonemize):
+        phoneme_lst=[]
+        for word in text.split():
+            if word in self.cmu_dict:
+                phoneme_lst.extend(re.sub('[0-9]','',' '.join(self.cmu_dict.get(word)[0])).split())
+            else:
+                phoneme_lst.extend(fallback_phonemizer(self,word))
+        phoneme_lst = [p.lower() for p in phoneme_lst]
+        return(phoneme_lst)
+    
     
     def sb_phonemize(self,text):
         return self.sb_phonemizer(text)
@@ -38,7 +57,11 @@ class phonemization:
         """Replace multiple spaces with a single space."""
         return re.sub(r'\s+', ' ', input_string)
         
-    def phonemize_batch(self, batch, phonamizer_fn=dp_phonemize, suffix=''):
+    def phonemize_batch(self, 
+                        batch, 
+                        phonamizer_fn=dp_phonemize, 
+                        suffix=''):
+        
         if self.normalize:
             text = batch['text_norm'].lower()
         else:
@@ -53,12 +76,20 @@ class phonemization:
         batch["text_norm"] = self.remove_special_characters(batch["text"])
         return batch
         
-    def run(self, dataset_path, output_path, phonemizers='dp,sb', normalize=True, nproc=1):
+    def run(self, 
+            dataset_path, 
+            output_path, 
+            phonemizers='dp,sb,cmu', 
+            normalize=True, 
+            nproc=1):
+        
         data = load_from_disk(dataset_path)
         
         if normalize:
             data = data.map(self.remove_special_characters_batch, num_proc=nproc)
         for phonemizer in phonemizers.split(','):
+            if phonemizer == 'cmu':
+                data = data.map(self.phonemize_batch, fn_kwargs={'phonamizer_fn':self.cmu_phonemize,'suffix':'_cmu'},num_proc=nproc)                
             if phonemizer == 'dp':
                 data = data.map(self.phonemize_batch, fn_kwargs={'phonamizer_fn':self.dp_phonemize,'suffix':'_dp'},num_proc=nproc)
             if phonemizer == 'sb':
