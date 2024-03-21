@@ -100,6 +100,21 @@ class SCTCTrainer(Trainer):
         self.group_ids = kargs.pop('group_ids') #List with number of items in each group
         super(SCTCTrainer, self).__init__(**kargs)
 
+    def _get_feat_extract_output_lengths(self, model, input_lengths: Union[torch.LongTensor, int]):
+        """
+        Computes the output length of the convolutional layers
+        """
+
+        def _conv_out_length(input_length, kernel_size, stride):
+            # 1D convolutional layer output length formula taken
+            # from https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html
+            return (input_length - kernel_size) // stride + 1
+
+        for kernel_size, stride in zip(model.config.conv_kernel, model.config.conv_stride):
+            input_lengths = _conv_out_length(input_lengths, kernel_size, stride)
+
+        return input_lengths
+
     def compute_loss(self, model, inputs, return_outputs=False):
         labels = inputs.get("labels")
         outputs = model(inputs.get('input_values'))
@@ -129,8 +144,8 @@ class SCTCTrainer(Trainer):
             flattened_targets = targets.masked_select(labels_mask)
             flattened_targets = flattened_targets.cpu().apply_(lambda x: self.group_ids[i][x]) #So all targets will start from index 1
             flattened_targets = flattened_targets.to(self.args.device)
-            input_lengths = model._get_feat_extract_output_lengths(torch.ones_like(inputs.get('input_values'),dtype=torch.int32).sum(-1))
-            loss = F.ctc_loss(log_probs, flattened_targets, input_lengths, target_lengths, blank=model.config.pad_token_id, zero_infinity=model.config.ctc_zero_infinity, reduction=model.config.ctc_loss_reduction)
+            input_lengths = self._get_feat_extract_output_lengths(model.module, torch.ones_like(inputs.get('input_values'),dtype=torch.int32).sum(-1))
+            loss = F.ctc_loss(log_probs, flattened_targets, input_lengths, target_lengths, blank=model.module.config.pad_token_id, zero_infinity=model.module.config.ctc_zero_infinity, reduction=model.module.config.ctc_loss_reduction)
             all_losses.append(loss)
         sctc_loss = sum(all_losses) #TODO: consider average over number of groups NOT VALID
         #TODO: consider reduction over input_lengths*target_lengths
@@ -151,8 +166,10 @@ class TrainSAModel():
             self.accelerate = True
             self.device = torch.device('cuda')
             self.n_devices = torch.cuda.device_count()
-            assert self.n_devices == 1, 'Support only single GPU. Please use CUDA_VISIBLE_DEVICES=gpu_index if you have multiple gpus' #Currently support only single gpu
+            logger.info(f"CUDA is available. Training/Evaluation will run on {self.n_devices} GPUs")
+            #assert self.n_devices == 1, 'Support only single GPU. Please use CUDA_VISIBLE_DEVICES=gpu_index if you have multiple gpus' #Currently support only single gpu
         else:
+            logger.info(f"CUDA is not available. Training/Evaluation will run on CPUs")
             self.device = torch.device('cpu')
             self.n_devices = 1
         try:    
