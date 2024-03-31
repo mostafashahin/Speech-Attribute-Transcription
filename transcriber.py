@@ -136,7 +136,7 @@ class transcribe_SA():
         self.check_identical_phonemes(df_p2att)
         not_supported = set(df_p2att.columns) - set(self.att_list)
         if not_supported:
-            logger.warning(f'Attribute/s {','.join(not_supported)} is not supported by the model {self.model_path} and will be ignored. To get available attributes of the selected model run transcribe --model_path=/path/to/model print_availabel_attributes')
+            logger.warning(f"Attribute/s {','.join(not_supported)} is not supported by the model {self.model_path} and will be ignored. To get available attributes of the selected model run transcribe --model_path=/path/to/model print_availabel_attributes")
             df_p2att = df_p2att.drop(columns=not_supported)
         
         self.phoneme_list = df_p2att.index.values
@@ -208,18 +208,10 @@ class transcribe_SA():
         return pred
 
     
-
-
-    def transcribe(self, audio_file, 
-                   attributes='all', 
-                   phonological_matrix_file = None, 
-                   human_readable = True):
-
-        
-        def print_human_readable(output):
+    def print_human_readable(self, output, with_phoneme = False):
             column_widths = []
             rows = []
-            if phonological_matrix_file:
+            if with_phoneme:
                 column_widths.append(max([len(att['Name']) for att in output['Attributes']]+[len('Phoneme')]))
                 column_widths.extend([5]*max([len(att['Pattern']) for att in output['Attributes']]+[len(output['Phoneme']['symbols'])]))
                 rows.append(('Phoneme'.center(column_widths[0]), *[s.center(column_widths[j+1]) for j,s in enumerate(output['Phoneme']['symbols'])]))
@@ -234,6 +226,12 @@ class transcribe_SA():
                 out_string += '|'.join(row)
                 out_string += '\n'
             return out_string
+
+    def transcribe(self, audio_file, 
+                   attributes='all', 
+                   phonological_matrix_file = None, 
+                   human_readable = True):
+
         
         output = {}
         output['wav_file_path'] = audio_file
@@ -272,7 +270,7 @@ class transcribe_SA():
 
         json_string = json.dumps(output, indent=4)
         if human_readable:
-            return print_human_readable(output)
+            return self.print_human_readable(output, phonological_matrix_file!=None)
         else:
             return json_string
         #return json_string
