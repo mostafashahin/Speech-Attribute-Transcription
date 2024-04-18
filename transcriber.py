@@ -185,7 +185,7 @@ class transcribe_SA():
     def decode_phoneme(self,logits):
         def masked_log_softmax(vector: torch.Tensor, mask: torch.Tensor, dim: int = -1) -> torch.Tensor:
             if mask is not None:
-                mask = mask.float()
+                mask = mask.float().to(self.device())
                 while mask.dim() < vector.dim():
                     mask = mask.unsqueeze(1)
                 # vector + mask.log() is an easy way to zero out masked elements in logspace, but it
