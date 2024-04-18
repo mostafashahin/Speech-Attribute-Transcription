@@ -198,7 +198,7 @@ class transcribe_SA():
         
         log_props_all_masked = []
         for i in range(len(self.att_list)):
-            mask = torch.zeros(logits.size()[2], dtype = torch.bool)
+            mask = torch.zeros(logits.size()[2], dtype = torch.bool).to(self.device)
             mask[self.group_ids[i]] = True
             mask.unsqueeze_(0).unsqueeze_(0)
             log_probs = masked_log_softmax(vector=logits, mask=mask, dim=-1).masked_fill(~mask,0)
