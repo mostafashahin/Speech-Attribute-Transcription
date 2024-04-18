@@ -58,6 +58,7 @@ class transcribe_SA():
 
         self.processor = Wav2Vec2Processor.from_pretrained(self.model_path)
         self.model = Wav2Vec2ForCTC.from_pretrained(self.model_path)
+        self.model.to(self.device)
         self.pad_token_id = self.processor.tokenizer.pad_token_id
         self.sampling_rate = self.processor.feature_extractor.sampling_rate
 
@@ -105,7 +106,7 @@ class transcribe_SA():
 
     def get_logits(self, y):
         
-        input_values = self.processor(audio=y, sampling_rate=self.sampling_rate, return_tensors="pt").input_values
+        input_values = self.processor(audio=y, sampling_rate=self.sampling_rate, return_tensors="pt").input_values.to(self.device)
         
         with torch.no_grad():
             logits = self.model(input_values).logits
