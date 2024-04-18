@@ -8,6 +8,7 @@ import librosa
 from transformers import Wav2Vec2CTCTokenizer, Wav2Vec2Processor, Wav2Vec2ForCTC
 import transformers
 import pandas as pd
+from datasets import load_from_disk, DatasetDict
 
 logger = logging.getLogger(__name__)
 # Setup logging
@@ -227,6 +228,53 @@ class transcribe_SA():
                 out_string += '\n'
             return out_string
 
+    #This function will do the followings:
+    #1- if phonological_matrix_file=None and phoneme = False and attribute = None --> raise error nothing to be done
+    #2- if phonological_matrix_file=None and phoneme = True and attribute = None --> raise error phonological_matrix_file is needed to recognize phoneme from attribute
+    #3- if phonological_matrix_file=path/to/file and phoneme = True and attribute = None --> do batch phoneme recognition
+    #4- if attribute = 'all' or 'list' do batch recognize of attributes
+    #4-1 if phonological_matrix_file create also refrence attribute
+    
+    def transcribe_dataset(self, 
+                           input_dataset_path,
+                           output_dataset_path,
+                           split=None,
+                           phonological_matrix_file=None, 
+                           recognize_phoneme=True, 
+                           attributes=None):
+
+        dataset = load_from_disk(input_dataset_path)
+        if isinstance(dataset, DatasetDict):
+            if split:
+                if isinstance(split, str):
+                    dataset = dataset[split]
+                if isinstance(split, tuple):
+                    dataset = DatasetDict(dict([(k,dataset[k]) for k in split]))
+                    
+        
+        
+        def decode_batch(batch):
+            logits = self.get_logits(y=batch['audio']['array'])
+            batch['pred_phoneme'] = self.decode_phoneme(logits)
+            return batch
+
+        
+        if recognize_phoneme:
+            if not phonological_matrix_file:
+                logger.error("phonological matrix file is needed to map attributes to phonemes")
+                raise FileNotFoundError("No phonological matrix file is given")
+            
+            self.read_phoneme2att(phonological_matrix_file)
+            self.create_phoneme_tokenizer()
+            self.create_phonological_matrix()
+
+            dataset_pred = dataset.map(decode_batch)
+        
+        dataset_pred.save_to_disk(output_dataset_path)
+
+
+    
+    
     def transcribe(self, audio_file, 
                    attributes='all', 
                    phonological_matrix_file = None, 
