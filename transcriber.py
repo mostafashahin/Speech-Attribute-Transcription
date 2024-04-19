@@ -82,7 +82,7 @@ class transcribe_SA():
             self.group_ids.append(sorted([self.pad_token_id, n_indx, p_indx]))
 
     def decode_att(self, logits, att): #Need to lowercase when first read from the user
-        mask = torch.zeros(logits.size()[2], dtype = torch.bool)
+        mask = torch.zeros(logits.size()[2], dtype = torch.bool).to(self.device)
         try:
             i = self.att_list.index(att)
         except ValueError:
@@ -172,7 +172,7 @@ class transcribe_SA():
         self.phoneme_tokenizer = Wav2Vec2CTCTokenizer(vocab_file, pad_token="<pad>", word_delimiter_token="")
         
     def create_phonological_matrix(self):
-        self.phonological_matrix = torch.zeros((self.phoneme_tokenizer.vocab_size, self.processor.tokenizer.vocab_size)).type(torch.FloatTensor)
+        self.phonological_matrix = torch.zeros((self.phoneme_tokenizer.vocab_size, self.processor.tokenizer.vocab_size)).type(torch.FloatTensor).to(self.device)
         self.phonological_matrix[self.phoneme_tokenizer.pad_token_id, self.processor.tokenizer.pad_token_id] = 1
         for p in self.phoneme_list:
             for att in self.p2att_map[p]:
@@ -185,7 +185,7 @@ class transcribe_SA():
     def decode_phoneme(self,logits):
         def masked_log_softmax(vector: torch.Tensor, mask: torch.Tensor, dim: int = -1) -> torch.Tensor:
             if mask is not None:
-                mask = mask.float().to(self.device)
+                mask = mask.float()
                 while mask.dim() < vector.dim():
                     mask = mask.unsqueeze(1)
                 # vector + mask.log() is an easy way to zero out masked elements in logspace, but it
