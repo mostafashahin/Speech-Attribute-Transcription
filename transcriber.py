@@ -353,13 +353,13 @@ class transcribe_SA():
 
         dataset_eval = dataset.map(evaluate_batch, batched=True, batch_size= None, remove_columns=column_names)
         if isinstance(dataset_eval, DatasetDict):
+            output = {}
             for split in dataset_eval.keys():
-                print(f'PER of {split} = {dataset_eval[split][0]["wer"]}')
+                output[split] = dataset_eval[split][0]["wer"]
+            return output
         else:
-            print(f'PER = {dataset_eval[0]["wer"]}')
+            return dataset_eval[0]["wer"]
             
-            
-
 
 def main():
     fire.Fire(transcribe_SA)
