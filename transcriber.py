@@ -9,6 +9,7 @@ from transformers import Wav2Vec2CTCTokenizer, Wav2Vec2Processor, Wav2Vec2ForCTC
 import transformers
 import pandas as pd
 from datasets import load_from_disk, DatasetDict
+import evaluate
 
 logger = logging.getLogger(__name__)
 # Setup logging
@@ -323,6 +324,41 @@ class transcribe_SA():
         else:
             return json_string
         #return json_string
+
+
+    def evaluate_dataset(self, input_dataset_path,
+                         split=None,
+                         pred_phoneme='pred_phoneme',
+                         ref_phoneme='phoneme',
+                         metric_path='metrics/wer.py'):
+        
+        metric = evaluate.load(metric_path)
+        dataset = load_from_disk(input_dataset_path)
+        if isinstance(dataset, DatasetDict):
+            if split:
+                if isinstance(split, str):
+                    dataset = dataset[split]
+                    column_names = dataset.column_names
+                if isinstance(split, tuple):
+                    dataset = DatasetDict(dict([(k,dataset[k]) for k in split]))
+                    column_names = dataset[split[0]].column_names
+            else:
+                column_names = dataset[list(dataset.keys())[0]].column_names
+        else:
+            column_names = dataset.column_names
+                    
+        def evaluate_batch(batch):
+            wer_val = metric.compute(predictions=batch[pred_phoneme], references= batch[ref_phoneme])
+            return {'wer':[wer_val]}
+
+        dataset_eval = dataset.map(evaluate_batch, batched=True, batch_size= None, remove_columns=column_names)
+        if isinstance(dataset_eval, DatasetDict):
+            for split in dataset_eval.keys():
+                print(f'PER of {split} = {dataset_eval[split][0]["wer"]}')
+        else:
+            print(f'PER = {dataset_eval[0]["wer"]}')
+            
+            
 
 
 def main():
