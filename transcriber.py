@@ -10,6 +10,7 @@ import transformers
 import pandas as pd
 from datasets import load_from_disk, DatasetDict
 import evaluate
+import re
 
 logger = logging.getLogger(__name__)
 # Setup logging
@@ -330,10 +331,38 @@ class transcribe_SA():
                          split=None,
                          pred_phoneme='pred_phoneme',
                          ref_phoneme='phoneme',
-                         metric_path='metrics/wer.py'):
+                         metric_path='metrics/wer.py',
+                        diph2mono_file=None,
+                        decouple = True): #If diph2mono is provided and decouple = True, both ref and pred phonemes will be decoupled, if decouple = False
+                                          #both of them will be coupled.
+        
+        def _load_diphthongs_to_monophthongs_map(diphthongs_to_monophthongs_map_file):
+            with open(diphthongs_to_monophthongs_map_file, 'r') as f:
+                self.diphthongs_to_monophthongs_map = dict([(x.split(',')[0], ' '.join(x.split(',')[1:])) for x in f.read().splitlines()])
+                self.monophthongs_to_diphthongs_map = dict([(v,k) for k,v in self.diphthongs_to_monophthongs_map.items()])
+        
+        def _process_diphthongs(batch, phoneme_column, decouple=True):
+            if decouple:
+                mapper = self.diphthongs_to_monophthongs_map
+            else:
+                mapper = self.monophthongs_to_diphthongs_map
+            
+            pattern = '|'.join(mapper.keys())
+            batch[phoneme_column] = re.sub(pattern, lambda x: mapper[x.group(0)], batch[phoneme_column])
+            return batch
+
+        
+                    
         
         metric = evaluate.load(metric_path)
         dataset = load_from_disk(input_dataset_path)
+
+        if diph2mono_file:
+            _load_diphthongs_to_monophthongs_map(diph2mono_file)
+            for phoneme_column in [pred_phoneme, ref_phoneme]:
+                dataset = dataset.map(_process_diphthongs, fn_kwargs={'phoneme_column':phoneme_column,'decouple':decouple}, load_from_cache_file=False)
+                    
+                    
         if isinstance(dataset, DatasetDict):
             if split:
                 if isinstance(split, str):
@@ -351,7 +380,7 @@ class transcribe_SA():
             wer_val = metric.compute(predictions=batch[pred_phoneme], references= batch[ref_phoneme])
             return {'wer':[wer_val]}
 
-        dataset_eval = dataset.map(evaluate_batch, batched=True, batch_size= None, remove_columns=column_names)
+        dataset_eval = dataset.map(evaluate_batch, batched=True, batch_size= None, remove_columns=column_names, load_from_cache_file=False)
         if isinstance(dataset_eval, DatasetDict):
             output = {}
             for split in dataset_eval.keys():

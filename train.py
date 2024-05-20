@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 from datasets import load_dataset, load_metric, ClassLabel, load_from_disk, DatasetDict, concatenate_datasets, Dataset
 import evaluate
-
+import re
 
 logger = logging.getLogger(__name__)
 # Setup logging
@@ -186,6 +186,8 @@ class TrainSAModel():
         self.save_preprocessed_data = config['preprocessor']['save_preprocessed_data']
         self.load_from_preprocessed_data = config['preprocessor']['load_from_preprocessed_data']
         self.max_length_in_sec = config['preprocessor']['max_length_in_sec']
+        self.decouple_diphthongs = config['preprocessor']['decouple_diphthongs']
+        self.diphthongs_to_monophthongs_map_file = config['preprocessor'].get('diphthongs_to_monophthongs_map_file','')
 
         self.model_path = config['training']['model_path']
         self.gradient_checkpointing = config['training']['gradient_checkpointing']
@@ -321,6 +323,15 @@ class TrainSAModel():
         batch["labels"] = list(map(processPerGroup, batch["target_text"]))
         return batch
 
+    def _load_diphthongs_to_monophthongs_map(self):
+        with open(self.diphthongs_to_monophthongs_map_file, 'r') as f:
+            self.diphthongs_to_monophthongs_map = dict([(x.split(',')[0], ' '.join(x.split(',')[1:])) for x in f.read().splitlines()])
+        
+    def _decouple_diphthongs(self, batch):
+        pattern = '|'.join(self.diphthongs_to_monophthongs_map.keys())
+        batch[self.phoneme_column] = re.sub(pattern, lambda x: self.diphthongs_to_monophthongs_map[x.group(0)], batch[self.phoneme_column])
+        return batch
+
     def load_data(self):
         try:
             data = load_from_disk(self.dataset_path)
@@ -397,9 +408,19 @@ class TrainSAModel():
                         bTraining=True):
         
         data = data.filter(lambda x:len(x['audio']['array']) < self.max_length_in_sec*x['audio']['sampling_rate'], num_proc=self.num_proc)
+        
+        if self.decouple_diphthongs:
+            if self.diphthongs_to_monophthongs_map_file:
+                self._load_diphthongs_to_monophthongs_map()
+            else:
+                logger.error("decouple_diphthongs is set to True but to mapping file is provided, please explicitly set decouple_diphthongs to False or provide a mapping file in diphthongs_to_monophthongs_map_file")
+                raise FileNotFoundError
+            data = data.map(self._decouple_diphthongs, batched=False)
+        
         data = data.map(self._create_att_targets, batched=True, batch_size=8, num_proc=self.num_proc)
         if bTraining:
             data = data.map(self._prepare_dataset, remove_columns=data.column_names, batch_size=8, num_proc=self.num_proc, batched=True)
+        
         return data
 
     def prepare_trainer(self):
