@@ -385,14 +385,14 @@ class transcribe_SA():
         if confusion_matrix:
             cm_output_basename = os.path.normpath(input_dataset_path)
             cm_metric = cm.phoneme_confusion_matrix()
-            if isinstance(dataset_eval, DatasetDict):
-                for split in dataset_eval.keys():
+            if isinstance(dataset, DatasetDict):
+                for split in dataset.keys():
                     cm_output_file = '_'.join([cm_output_basename, split]) + '_cm.csv'
-                    _ = cm_metric.compute(dataset_eval[split][ref_phoneme], dataset_eval[split][pred_phoneme])
+                    _ = cm_metric.compute(dataset[split][ref_phoneme], dataset[split][pred_phoneme])
                     cm_metric.save_cm(cm_output_file)
             else:
                 cm_output_file = cm_output_basename + '_cm.csv'
-                _ = cm_metric.compute(dataset_eval[ref_phoneme], dataset_eval[pred_phoneme])
+                _ = cm_metric.compute(dataset[ref_phoneme], dataset[pred_phoneme])
                 cm_metric.save_cm(cm_output_file)
         
         if isinstance(dataset_eval, DatasetDict):
