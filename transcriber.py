@@ -11,6 +11,7 @@ import pandas as pd
 from datasets import load_from_disk, DatasetDict
 import evaluate
 import re
+from metrics import cm
 
 logger = logging.getLogger(__name__)
 # Setup logging
@@ -332,8 +333,9 @@ class transcribe_SA():
                          pred_phoneme='pred_phoneme',
                          ref_phoneme='phoneme',
                          metric_path='metrics/wer.py',
-                        diph2mono_file=None,
-                        decouple = True): #If diph2mono is provided and decouple = True, both ref and pred phonemes will be decoupled, if decouple = False
+                         confusion_matrix=True,
+                         diph2mono_file=None,
+                         decouple = True): #If diph2mono is provided and decouple = True, both ref and pred phonemes will be decoupled, if decouple = False
                                           #both of them will be coupled.
         
         def _load_diphthongs_to_monophthongs_map(diphthongs_to_monophthongs_map_file):
@@ -379,6 +381,20 @@ class transcribe_SA():
             return {'wer':[wer_val]}
 
         dataset_eval = dataset.map(evaluate_batch, batched=True, batch_size= None, remove_columns=column_names, load_from_cache_file=False)
+        #Compute confusion matrix
+        if confusion_matrix:
+            cm_output_basename = os.path.normpath(input_dataset_path)
+            cm_metric = cm.phoneme_confusion_matrix()
+            if isinstance(dataset_eval, DatasetDict):
+                for split in dataset_eval.keys():
+                    cm_output_file = '_'.join([cm_output_basename, split]) + '_cm.csv'
+                    _ = cm_metric.compute(dataset_eval[split][ref_phoneme], dataset_eval[split][pred_phoneme])
+                    cm_metric.save_cm(cm_output_file)
+            else:
+                cm_output_file = cm_output_basename + '_cm.csv'
+                _ = cm_metric.compute(dataset_eval[ref_phoneme], dataset_eval[pred_phoneme])
+                cm_metric.save_cm(cm_output_file)
+        
         if isinstance(dataset_eval, DatasetDict):
             output = {}
             for split in dataset_eval.keys():
