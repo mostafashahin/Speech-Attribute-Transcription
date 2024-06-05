@@ -13,4 +13,4 @@ numpy==1.25.2
 evaluate
 jiwer
 fire
-
+python-Levenshtein

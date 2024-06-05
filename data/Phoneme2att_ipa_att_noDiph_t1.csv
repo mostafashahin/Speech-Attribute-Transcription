@@ -1,4 +1,4 @@
-Phoneme_arpa,Phoneme_ipa,Phoneme_other,Language,bi­labial,plosive,voiced,affricates,postalveolar,dental,alveolar,fricative,labiodental,velar,glotal,approximant,nasal,palatal,labial,vowel,consonant,semivowel,high,nearhigh,highmid,lowmid,nearlow,low,front,central,back,round,rhotic,allhigh,alllow
+Phoneme_arpa,Phoneme_ipa,Phoneme_other,Language,bilabial,plosive,voiced,affricates,postalveolar,dental,alveolar,fricative,labiodental,velar,glotal,approximant,nasal,palatal,labial,vowel,consonant,semivowel,high,nearhigh,highmid,lowmid,nearlow,low,front,central,back,round,rhotic,allhigh,alllow
 aa,ɑ,,en_us,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,0,0,1
 ae,æ,,en_us,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1
 ah,ʌ,,en_us,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1
