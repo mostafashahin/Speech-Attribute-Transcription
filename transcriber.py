@@ -350,8 +350,6 @@ class transcribe_SA():
             pattern = '|'.join(mapper.keys())
             batch[phoneme_column] = re.sub(pattern, lambda x: mapper[x.group(0)], batch[phoneme_column])
             return batch
-
-        
                     
         
         metric = evaluate.load(metric_path)
