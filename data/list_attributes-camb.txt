@@ -15,5 +15,7 @@ high
 low
 pharyngeal
 laryngeal
+nasal
+lateral
 atr
 rhotic
