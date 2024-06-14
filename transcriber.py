@@ -338,6 +338,7 @@ class transcribe_SA():
                          decouple = True): #If diph2mono is provided and decouple = True, both ref and pred phonemes will be decoupled, if decouple = False
                                           #both of them will be coupled.
         
+        diphthong_str = 'no_diph' if decouple else 'diph'
         def _load_diphthongs_to_monophthongs_map(diphthongs_to_monophthongs_map_file):
             with open(diphthongs_to_monophthongs_map_file, 'r') as f:
                 self.diphthongs_to_monophthongs_map = dict([(x.split(',')[0], ' '.join(x.split(',')[1:])) for x in f.read().splitlines()])
@@ -387,11 +388,11 @@ class transcribe_SA():
             cm_metric = cm.phoneme_confusion_matrix()
             if isinstance(dataset, DatasetDict):
                 for split in dataset.keys():
-                    cm_output_file = '_'.join([cm_output_basename, split]) + '_cm.csv'
+                    cm_output_file = '_'.join([cm_output_basename, split]) + f'{diphthong_str}_cm.csv'
                     _ = cm_metric.compute(dataset[split][ref_phoneme], dataset[split][pred_phoneme])
                     cm_metric.save_cm(cm_output_file)
             else:
-                cm_output_file = cm_output_basename + '_cm.csv'
+                cm_output_file = f'{cm_output_basename}_{diphthong_str}_cm.csv'
                 _ = cm_metric.compute(dataset[ref_phoneme], dataset[pred_phoneme])
                 cm_metric.save_cm(cm_output_file)
         
