@@ -18,6 +18,8 @@ consonant
 semivowel
 rhotic
 diphthong
+monophthong
+round
 high
 low
 mid
