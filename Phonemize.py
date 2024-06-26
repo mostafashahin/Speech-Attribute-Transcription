@@ -1,6 +1,6 @@
 from datasets import load_from_disk
 from dp.phonemizer import Phonemizer
-from speechbrain.pretrained import GraphemeToPhoneme
+from speechbrain.inference.text import GraphemeToPhoneme
 import cmudict
 import re
 import fire
@@ -12,9 +12,9 @@ if torch.cuda.is_available() and torch.cuda.device_count() > 1:
 
 class phonemization:
     def __init__(self):
-        self.chars_to_ignore_regex = r'[,?.!-;:"]'
+        self.chars_to_ignore_regex = r'[,?.!-;:"–]'
         self.dp_phonemizer_model_path = join('models','d_phonemizer','en_us_cmudict_forward.pt')
-        self.sb_phonemizer_model_path = join('models','sb_phonemizer')
+        self.sb_phonemizer_model_path = join('models','soundchoice-g2p')
 
         
         self.cmu_dict = cmudict.dict()
@@ -79,23 +79,28 @@ class phonemization:
     def run(self, 
             dataset_path, 
             output_path, 
-            phonemizers='dp,sb,cmu', 
+            phonemizers=('dp','sb','cmu'), 
             normalize=True, 
             nproc=1):
-        
+       
+        self.normalize = normalize
         data = load_from_disk(dataset_path)
-        
+        if isinstance(phonemizers, str):
+            phonemizers = (phonemizers,)
         if normalize:
             data = data.map(self.remove_special_characters_batch, num_proc=nproc)
-        for phonemizer in phonemizers.split(','):
+        for phonemizer in phonemizers:
             if phonemizer == 'cmu':
+                print('cmu phonemization')
                 data = data.map(self.phonemize_batch, fn_kwargs={'phonamizer_fn':self.cmu_phonemize,'suffix':'_cmu'},num_proc=nproc)                
             if phonemizer == 'dp':
+                print('dp phonemization')
                 data = data.map(self.phonemize_batch, fn_kwargs={'phonamizer_fn':self.dp_phonemize,'suffix':'_dp'},num_proc=nproc)
             if phonemizer == 'sb':
+                print('sb phonemization')
                 if torch.cuda.is_available():
                     nproc = torch.cuda.device_count()
-                data = data.map(self.phonemize_batch, fn_kwargs={'phonamizer_fn':self.sb_phonemize,'suffix':'_sb'},num_proc=nproc, cache_file_name='/g/data/iv96/mostafa/cache_sb', load_from_cache_file=True)
+                data = data.map(self.phonemize_batch, fn_kwargs={'phonamizer_fn':self.sb_phonemize,'suffix':'_sb'},num_proc=nproc, cache_file_name='/g/data/iv96/mostafa/cache_sb', load_from_cache_file=False)
         data.save_to_disk(output_path)
 
 

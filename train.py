@@ -333,15 +333,10 @@ class TrainSAModel():
         return batch
 
     def load_data(self):
-        try:
-            data = load_from_disk(self.dataset_path)
-        except Exception as e:
-            logger.error(f'Failed to load data at {self.dataset_path}')
-            raise
         #TODO if data is dataset and not dictdataset use automatic train,test,valid split
         
         #TODO check if dict and train part not specified raise error
-        train_data_loaded = valid_data_loaded = test_data_loaded = False
+        data_loaded = train_data_loaded = valid_data_loaded = test_data_loaded = False
         if self.load_from_preprocessed_data:
             try:
                 self.data_train = load_from_disk(join(self.working_dir,'preprocessed_data','train'))
@@ -351,6 +346,14 @@ class TrainSAModel():
                 logger.warning('Failed to load Training data from preprocessed version. Trying to reprocess from original source')
 
         if not train_data_loaded:
+            if not data_loaded:
+                try:
+                    data = load_from_disk(self.dataset_path)
+                    data_loaded = True
+                except Exception as e:
+                    logger.error(f'Failed to load data at {self.dataset_path}')
+                    raise
+
             tmp_list = []
             try:
                 for k in self.train_part:
@@ -372,6 +375,13 @@ class TrainSAModel():
                 logger.warning('Failed to load Validation data from preprocessed version. Trying to reprocess from original source')
 
         if not valid_data_loaded:
+            if not data_loaded:
+                try:
+                    data = load_from_disk(self.dataset_path)
+                    data_loaded = True
+                except Exception as e:
+                    logger.error(f'Failed to load data at {self.dataset_path}')
+                    raise
             tmp_list = []
             try:
                 for k in self.validation_part:
@@ -394,6 +404,14 @@ class TrainSAModel():
                 logger.warning('Failed to load Test data from preprocessed version. Trying to reprocess from original source')
 
         if not test_data_loaded:        
+            if not data_loaded:
+                try:
+                    data = load_from_disk(self.dataset_path)
+                    data_loaded = True
+                except Exception as e:
+                    logger.error(f'Failed to load data at {self.dataset_path}')
+                    raise
+
             try:
                 data_test = DatasetDict(dict([(k,data[k]) for k in self.test_part]))
                 self.data_test = self.preprocess_data(data_test, bTraining=False)
