@@ -350,8 +350,8 @@ class transcribe_SA():
             else:
                 mapper = self.monophthongs_to_diphthongs_map
             
-            pattern = '|'.join(mapper.keys())
-            batch[phoneme_column] = re.sub(pattern, lambda x: mapper[x.group(0)], batch[phoneme_column])
+            pattern = r'|'.join([f'(\s|^){x}(\s|$)' for x in mapper.keys()])
+            batch[phoneme_column] = re.sub(pattern, lambda x: x.group(0).replace(x.group(0).strip(),mapper[x.group(0).strip()]), batch[phoneme_column])
             return batch
                     
         
