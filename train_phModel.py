@@ -387,7 +387,7 @@ class TrainPhModel():
         self.processor.save_pretrained(self.saved_model_path)
 
 
-    def train_SA_model(self, resume_from_checkpoint=False):
+    def train_model(self, resume_from_checkpoint=False):
         self.create_processor()
         self.load_data()
         self.prepare_trainer()
@@ -410,7 +410,7 @@ class TrainPhModel():
     
         return batch
         
-    def evaluate_SA_model(self,
+    def evaluate_model(self,
                           eval_data=None,
                           eval_parts=None,
                           suffix=None,
