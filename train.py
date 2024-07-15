@@ -328,8 +328,8 @@ class TrainSAModel():
             self.diphthongs_to_monophthongs_map = dict([(x.split(',')[0], ' '.join(x.split(',')[1:])) for x in f.read().splitlines()])
         
     def _decouple_diphthongs(self, batch):
-        pattern = '|'.join(self.diphthongs_to_monophthongs_map.keys())
-        batch[self.phoneme_column] = re.sub(pattern, lambda x: self.diphthongs_to_monophthongs_map[x.group(0)], batch[self.phoneme_column])
+        pattern = r'|'.join([f'\\b{x}\\b' for x in self.diphthongs_to_monophthongs_map.keys()])
+        batch[self.phoneme_column] = re.sub(pattern, lambda x: x.group(0).replace(x.group(0).strip(),self.diphthongs_to_monophthongs_map[x.group(0).strip()]), batch[self.phoneme_column])
         return batch
 
     def load_data(self):
