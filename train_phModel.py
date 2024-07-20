@@ -71,7 +71,7 @@ class DataCollatorCTCWithPadding:
         label_features = [{"input_ids": feature["labels"]} for feature in features]
         
         batch = self.processor.feature_extractor.pad(
-            input_features=input_features,
+            input_features,
             padding=self.padding_features,
             max_length=self.max_length,
             pad_to_multiple_of=self.pad_to_multiple_of,
@@ -80,7 +80,7 @@ class DataCollatorCTCWithPadding:
 
         labels_batch = self.processor.pad(
                 labels=label_features,
-                padding=self.padding,
+                padding=self.padding_labels,
                 max_length=self.max_length_labels,
                 pad_to_multiple_of=self.pad_to_multiple_of_labels,
                 return_tensors="pt",
@@ -212,11 +212,18 @@ class TrainPhModel():
     def _load_diphthongs_to_monophthongs_map(self):
         with open(self.diphthongs_to_monophthongs_map_file, 'r') as f:
             self.diphthongs_to_monophthongs_map = dict([(x.split(',')[0], ' '.join(x.split(',')[1:])) for x in f.read().splitlines()])
-        
-    def _decouple_diphthongs(self, batch):
-        pattern = r'|'.join([f'\\b{x}\\b' for x in self.diphthongs_to_monophthongs_map.keys()])
-        batch[self.phoneme_column] = re.sub(pattern, lambda x: x.group(0).replace(x.group(0).strip(),self.diphthongs_to_monophthongs_map[x.group(0).strip()]), batch[self.phoneme_column])
+            self.monophthongs_to_diphthongs_map = dict([(v,k) for k,v in self.diphthongs_to_monophthongs_map.items()])
+    
+
+    def _process_diphthongs(self,batch, phoneme_column, decouple=True):
+        if decouple:
+            mapper = self.diphthongs_to_monophthongs_map
+        else:
+            mapper = self.monophthongs_to_diphthongs_map                                                     
+        pattern = r'|'.join([f'\\b{x}\\b' for x in mapper.keys()])
+        batch[phoneme_column] = re.sub(pattern, lambda x: x.group(0).replace(x.group(0).strip(),mapper[x.group(0).strip()]), batch[phoneme_column])
         return batch
+
 
     def load_data(self):
         #TODO if data is dataset and not dictdataset use automatic train,test,valid split
@@ -319,7 +326,7 @@ class TrainPhModel():
             else:
                 logger.error("decouple_diphthongs is set to True but to mapping file is provided, please explicitly set decouple_diphthongs to False or provide a mapping file in diphthongs_to_monophthongs_map_file")
                 raise FileNotFoundError
-            data = data.map(self._decouple_diphthongs, batched=False)
+            data = data.map(self._process_diphthongs, batched=False, fn_kwargs={'phoneme_column':self.phoneme_column, 'decouple':True}, load_from_cache_file=False)
         
         if bTraining:
             data = data.map(self._prepare_dataset, remove_columns=data.column_names, batch_size=8, num_proc=self.num_proc, batched=True)
@@ -332,10 +339,10 @@ class TrainPhModel():
             pred_logits = pred.predictions
             pred_ids = np.argmax(pred_logits, axis=-1)
         
-            pred.label_ids[pred.label_ids == -100] = processor.tokenizer.pad_token_id
+            pred.label_ids[pred.label_ids == -100] = self.processor.tokenizer.pad_token_id
         
             pred_str = self.processor.batch_decode(pred_ids, spaces_between_special_tokens=self.spaces_between_special_tokens)
-            label_str = processor.batch_decode(pred.label_ids, spaces_between_special_tokens=self.spaces_between_special_tokens)
+            label_str = self.processor.batch_decode(pred.label_ids, spaces_between_special_tokens=self.spaces_between_special_tokens)
         
             per = self.metric.compute(predictions=pred_str, references=label_str)
             return {"wer": per}
@@ -394,7 +401,7 @@ class TrainPhModel():
         self.trainer.train(resume_from_checkpoint=resume_from_checkpoint)
         self.save_model()
         if self.auto_eval:
-            self.evaluate_SA_model()
+            self.evaluate_model()
 
     def map_to_result(self, batch):
         input_values = self.processor(
@@ -406,7 +413,7 @@ class TrainPhModel():
             logits = self.model(input_values).logits
     
         pred_ids = torch.argmax(logits, dim=-1)
-        batch["pred_str"] = processor.batch_decode(pred_ids,spaces_between_special_tokens=True)[0]
+        batch["pred_str"] = self.processor.batch_decode(pred_ids,spaces_between_special_tokens=True)[0]
     
         return batch
         
@@ -414,7 +421,8 @@ class TrainPhModel():
                           eval_data=None,
                           eval_parts=None,
                           suffix=None,
-                          phoneme_column=None):
+                          phoneme_column=None,
+                          decouple_diph=None):
         
         #Load the model and processor deafult at working_dir/fine_tune/best could be overridden from the yaml file by setting 
         #value for evaluation->trained_model_path
@@ -486,6 +494,11 @@ class TrainPhModel():
                 suffix = '_'.join(self.data_test.keys()) if isdict else 'testset'
             
             self.results = self.data_test.map(self.map_to_result, batched=False, load_from_cache_file=False)
+            if decouple_diph!= None:
+                self._load_diphthongs_to_monophthongs_map()
+                for col in ["pred_str", self.phoneme_column]:
+                    self.results = self.results.map(self._process_diphthongs, fn_kwargs={'phoneme_column':col,'decouple':decouple_diph}, load_from_cache_file=False)
+
             self.results.save_to_disk(join(self.working_dir,f"results_{suffix}.db"))
     
             #metric = evaluate.load(self.metric_path)
@@ -494,9 +507,9 @@ class TrainPhModel():
             with open(join(self.working_dir,f"results_{suffix}.txt"),'w') as f:
                 if isdict:
                     for dataset in self.results:
-                        print("Test PER: {:.3f}".format(self.metric.compute(predictions=self.results[dataset]["pred_str"], references=self.results[dataset]["target_text"])),file=f)
+                        print("Test PER: {:.3f}".format(self.metric.compute(predictions=self.results[dataset]["pred_str"], references=self.results[dataset][self.phoneme_column])),file=f)
                 else:
-                    print("Test PER: {:.3f}".format(self.metric.compute(predictions=self.results["pred_str"], references=self.results["target_text"])),file=f)
+                    print("Test PER: {:.3f}".format(self.metric.compute(predictions=self.results["pred_str"], references=self.results[self.phoneme_column])),file=f)
             logger.info(f'Results dataset saved in {join(self.working_dir,f"results_{suffix}.db")} and the results saved in {join(self.working_dir,f"results_{suffix}.txt")}')
         
 
