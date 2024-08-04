@@ -14,15 +14,7 @@ class phonemization:
     def __init__(self):
         self.chars_to_ignore_regex = r'[,?.!-;:"–]'
         self.dp_phonemizer_model_path = join('models','d_phonemizer','en_us_cmudict_forward.pt')
-        self.sb_phonemizer_model_path = join('models','soundchoice-g2p')
-
-        
-        self.cmu_dict = cmudict.dict()
-        self.dp_phonemizer = Phonemizer.from_checkpoint(self.dp_phonemizer_model_path)
-        if torch.cuda.is_available():
-            self.sb_phonemizer = GraphemeToPhoneme.from_hparams(self.sb_phonemizer_model_path,run_opts={"device":"cuda"})
-        else:
-            self.sb_phonemizer = GraphemeToPhoneme.from_hparams(self.sb_phonemizer_model_path)
+        self.sb_phonemizer_model_path = join('models','soundchoice-g2p')    
         self.normalize = False
 
     
@@ -63,12 +55,15 @@ class phonemization:
                         suffix=''):
         
         if self.normalize:
-            text = batch['text_norm'].lower()
+            text = batch['text_norm'].lower().strip()
         else:
-            text = batch['text'].lower()
-        phoneme_str = ' '.join(phonamizer_fn(text))
-        phoneme_str = phoneme_str.lower()
-        phoneme_str = self.replace_multiple_spaces_with_single_space(phoneme_str)
+            text = batch['text'].lower().strip()
+        if text:
+            phoneme_str = ' '.join(phonamizer_fn(text))
+            phoneme_str = phoneme_str.lower()
+            phoneme_str = self.replace_multiple_spaces_with_single_space(phoneme_str)
+        else:
+            phoneme_str = ''
         batch[f'phoneme{suffix}'] = phoneme_str.strip()
         return batch
 
@@ -91,12 +86,19 @@ class phonemization:
             data = data.map(self.remove_special_characters_batch, num_proc=nproc)
         for phonemizer in phonemizers:
             if phonemizer == 'cmu':
+                self.cmu_dict = cmudict.dict()
+                self.dp_phonemizer = Phonemizer.from_checkpoint(self.dp_phonemizer_model_path)
                 print('cmu phonemization')
                 data = data.map(self.phonemize_batch, fn_kwargs={'phonamizer_fn':self.cmu_phonemize,'suffix':'_cmu'},num_proc=nproc)                
             if phonemizer == 'dp':
+                self.dp_phonemizer = Phonemizer.from_checkpoint(self.dp_phonemizer_model_path)
                 print('dp phonemization')
                 data = data.map(self.phonemize_batch, fn_kwargs={'phonamizer_fn':self.dp_phonemize,'suffix':'_dp'},num_proc=nproc)
             if phonemizer == 'sb':
+                if torch.cuda.is_available():
+                    self.sb_phonemizer = GraphemeToPhoneme.from_hparams(self.sb_phonemizer_model_path,run_opts={"device":"cuda"})
+                else:
+                    self.sb_phonemizer = GraphemeToPhoneme.from_hparams(self.sb_phonemizer_model_path)
                 print('sb phonemization')
                 if torch.cuda.is_available():
                     nproc = torch.cuda.device_count()
