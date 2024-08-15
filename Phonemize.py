@@ -102,7 +102,7 @@ class phonemization:
                 print('sb phonemization')
                 if torch.cuda.is_available():
                     nproc = torch.cuda.device_count()
-                data = data.map(self.phonemize_batch, fn_kwargs={'phonamizer_fn':self.sb_phonemize,'suffix':'_sb'},num_proc=nproc, cache_file_name='/g/data/iv96/mostafa/cache_sb', load_from_cache_file=False)
+                data = data.map(self.phonemize_batch, fn_kwargs={'phonamizer_fn':self.sb_phonemize,'suffix':'_sb'},num_proc=nproc, load_from_cache_file=False)
         data.save_to_disk(output_path)
 
 

@@ -186,6 +186,7 @@ class TrainSAModel():
         self.save_preprocessed_data = config['preprocessor']['save_preprocessed_data']
         self.load_from_preprocessed_data = config['preprocessor']['load_from_preprocessed_data']
         self.max_length_in_sec = config['preprocessor']['max_length_in_sec']
+        self.min_length_in_sec = config['preprocessor'].get('min_length_in_sec', 0.1)
         self.decouple_diphthongs = config['preprocessor']['decouple_diphthongs']
         self.diphthongs_to_monophthongs_map_file = config['preprocessor'].get('diphthongs_to_monophthongs_map_file','')
 
@@ -424,6 +425,11 @@ class TrainSAModel():
     def preprocess_data(self,
                         data,
                         bTraining=True):
+
+        #Filter out all data with empty phonemes
+        data = data.filter(lambda x: x[self.phoneme_column] !='', num_proc=self.num_proc)
+
+        data = data.filter(lambda x:len(x['audio']['array']) > self.min_length_in_sec*x['audio']['sampling_rate'], num_proc=self.num_proc)
         
         data = data.filter(lambda x:len(x['audio']['array']) < self.max_length_in_sec*x['audio']['sampling_rate'], num_proc=self.num_proc)
         
