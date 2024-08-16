@@ -279,8 +279,9 @@ class TrainSAModel():
         
     def create_processor(self):
         vocab_list = list(chain(*self.groups))
-        vocab_dict = {v: k+1 for k, v in enumerate(vocab_list)}
+        vocab_dict = {v: k+2 for k, v in enumerate(vocab_list)}
         vocab_dict['<pad>'] = 0
+        vocab_dict['<unk>'] = 1
         vocab_dict = dict(sorted(vocab_dict.items(), key= lambda x: x[1]))
         self.vocab_file = join(self.working_dir,'vocab.json')
         with open(self.vocab_file, 'w') as f:
