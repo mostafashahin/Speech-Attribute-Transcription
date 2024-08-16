@@ -286,7 +286,7 @@ class TrainSAModel():
         with open(self.vocab_file, 'w') as f:
             json.dump(vocab_dict, f)
         #Build processor
-        self.tokenizer = Wav2Vec2CTCTokenizer(self.vocab_file, pad_token="<pad>", word_delimiter_token="")
+        self.tokenizer = Wav2Vec2CTCTokenizer(self.vocab_file, pad_token="<pad>", unk_token="<unk>", word_delimiter_token="")
         self.feature_extractor = Wav2Vec2FeatureExtractor(feature_size=1, sampling_rate=self.sampling_rate, padding_value=0.0, do_normalize=self.do_normalize, return_attention_mask=self.return_attention_mask)
         self.processor = Wav2Vec2Processor(feature_extractor=self.feature_extractor, tokenizer=self.tokenizer)
 
