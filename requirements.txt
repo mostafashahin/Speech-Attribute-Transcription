@@ -10,4 +10,4 @@ evaluate
 jiwer
 fire
 python-Levenshtein
-pip install cmudict
+cmudict
