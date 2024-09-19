@@ -126,14 +126,14 @@ class phonemization:
             output_path, 
             phonemizers=('dp','sb','cmu'), 
             normalize=True,
-            noise_bound='<>',
-            hand_noise=True,
-            noise_out_symb='<unk>',
-            ignor_noise = False,
-            nproc=1):
+            noise_bound='<>',  # Should be exactly two characters, defining the boundaries of the noise tag (e.g., '<noise>')
+            hand_noise=True,  # Determines whether or not to handle noise tags in the text; if True, noise tags are either retained in the same position or replaced by `noise_out_symb`. If False, noise tags are treated as regular text and passed to the phonemizer.
+            noise_out_symb='<unk>',  # The symbol to use in place of noise tags when `hand_noise` is True.
+            ignor_noise=False,  # If True, noise tags will be completely removed from the output, without replacement.
+            nproc=1):  # The number of processes to use for parallelization, default is 1 (single process).
        
         self.normalize = normalize
-        self.hand_noise = hand_noise
+        self.hand_noise = hand_noise 
         self.noise_bound = noise_bound
         self.noise_out_symb = noise_out_symb
         self.ignor_noise = ignor_noise

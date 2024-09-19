@@ -186,6 +186,7 @@ class TrainSAModel():
         self.save_preprocessed_data = config['preprocessor']['save_preprocessed_data']
         self.load_from_preprocessed_data = config['preprocessor']['load_from_preprocessed_data']
         self.max_length_in_sec = config['preprocessor']['max_length_in_sec']
+        self.min_length_in_sec = config['preprocessor'].get('min_length_in_sec', 0.1)
         self.decouple_diphthongs = config['preprocessor']['decouple_diphthongs']
         self.diphthongs_to_monophthongs_map_file = config['preprocessor'].get('diphthongs_to_monophthongs_map_file','')
 
@@ -278,14 +279,15 @@ class TrainSAModel():
         
     def create_processor(self):
         vocab_list = list(chain(*self.groups))
-        vocab_dict = {v: k+1 for k, v in enumerate(vocab_list)}
+        vocab_dict = {v: k+2 for k, v in enumerate(vocab_list)}
         vocab_dict['<pad>'] = 0
+        vocab_dict['<unk>'] = 1
         vocab_dict = dict(sorted(vocab_dict.items(), key= lambda x: x[1]))
         self.vocab_file = join(self.working_dir,'vocab.json')
         with open(self.vocab_file, 'w') as f:
             json.dump(vocab_dict, f)
         #Build processor
-        self.tokenizer = Wav2Vec2CTCTokenizer(self.vocab_file, pad_token="<pad>", word_delimiter_token="")
+        self.tokenizer = Wav2Vec2CTCTokenizer(self.vocab_file, pad_token="<pad>", unk_token="<unk>", word_delimiter_token="")
         self.feature_extractor = Wav2Vec2FeatureExtractor(feature_size=1, sampling_rate=self.sampling_rate, padding_value=0.0, do_normalize=self.do_normalize, return_attention_mask=self.return_attention_mask)
         self.processor = Wav2Vec2Processor(feature_extractor=self.feature_extractor, tokenizer=self.tokenizer)
 
@@ -424,6 +426,11 @@ class TrainSAModel():
     def preprocess_data(self,
                         data,
                         bTraining=True):
+
+        #Filter out all data with empty phonemes
+        data = data.filter(lambda x: x[self.phoneme_column] !='', num_proc=self.num_proc)
+
+        data = data.filter(lambda x:len(x['audio']['array']) > self.min_length_in_sec*x['audio']['sampling_rate'], num_proc=self.num_proc)
         
         data = data.filter(lambda x:len(x['audio']['array']) < self.max_length_in_sec*x['audio']['sampling_rate'], num_proc=self.num_proc)
         
