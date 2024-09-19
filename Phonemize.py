@@ -19,7 +19,41 @@ class phonemization:
 
     
 
+    def split_by_noise(self, text):
+        text_split = []
         
+        # Find indices for noise boundaries
+        ind_s = [i for i, item in enumerate(text) if self.noise_bound[0] in item]
+        ind_e = [i for i, item in enumerate(text) if self.noise_bound[1] in item]
+        
+        # Ensure start and end markers match in length
+        if not ind_s or len(ind_s) != len(ind_e):
+            return text_split
+        
+        # Add text before the first noise segment, if any
+        if ind_s[0] > 0:
+            pre_noise_text = text[:ind_s[0]].strip()
+            if pre_noise_text:
+                text_split.append(('T', pre_noise_text))
+        
+        # Process each noise segment and the text between noise segments
+        for i in range(len(ind_s)):
+            # Add the noise segment
+            noise_segment = text[ind_s[i]:ind_e[i] + 1]
+            text_split.append(('N', noise_segment))
+            
+            # Add the text between noise segments (or after the last one)
+            if i < len(ind_s) - 1:
+                between_noise_text = text[ind_e[i] + 1:ind_s[i + 1]].strip()
+                if between_noise_text:
+                    text_split.append(('T', between_noise_text))
+            else:
+                post_noise_text = text[ind_e[i] + 1:].strip()
+                if post_noise_text:
+                    text_split.append(('T', post_noise_text))
+        
+        return text_split
+
         
     def dp_phonemize(self, text):
         return self.dp_phonemizer(text, lang='en_us',expand_acronyms=False).replace('[',' ').replace(']',' ').split()
@@ -59,7 +93,23 @@ class phonemization:
         else:
             text = batch['text'].lower().strip()
         if text:
-            phoneme_str = ' '.join(phonamizer_fn(text))
+            
+            if self.hand_noise:
+                phonemes = []
+                for tag, cont in self.split_by_noise(text):
+                    if tag == 'N':
+                        if not self.ignor_noise:
+                            if self.noise_out_symb:
+                                phonemes.append(self.noise_out_symb)
+                            else:
+                                phonemes.append(cont)
+                    elif tag == 'T':
+                        phonemes.extend(phonamizer_fn(cont))
+                    else:
+                        pass
+            else:
+                phonemes = phonamizer_fn(text)                     
+            phoneme_str = ' '.join(phonemes)
             phoneme_str = phoneme_str.lower()
             phoneme_str = self.replace_multiple_spaces_with_single_space(phoneme_str)
         else:
@@ -75,10 +125,19 @@ class phonemization:
             dataset_path, 
             output_path, 
             phonemizers=('dp','sb','cmu'), 
-            normalize=True, 
+            normalize=True,
+            noise_bound='<>',
+            hand_noise=True,
+            noise_out_symb='<unk>',
+            ignor_noise = False,
             nproc=1):
        
         self.normalize = normalize
+        self.hand_noise = hand_noise
+        self.noise_bound = noise_bound
+        self.noise_out_symb = noise_out_symb
+        self.ignor_noise = ignor_noise
+        
         data = load_from_disk(dataset_path)
         if isinstance(phonemizers, str):
             phonemizers = (phonemizers,)
@@ -102,7 +161,7 @@ class phonemization:
                 print('sb phonemization')
                 if torch.cuda.is_available():
                     nproc = torch.cuda.device_count()
-                data = data.map(self.phonemize_batch, fn_kwargs={'phonamizer_fn':self.sb_phonemize,'suffix':'_sb'},num_proc=nproc, cache_file_name='/g/data/iv96/mostafa/cache_sb', load_from_cache_file=False)
+                data = data.map(self.phonemize_batch, fn_kwargs={'phonamizer_fn':self.sb_phonemize,'suffix':'_sb'},num_proc=nproc, load_from_cache_file=False)
         data.save_to_disk(output_path)
 
 
