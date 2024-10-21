@@ -10,3 +10,4 @@ evaluate
 jiwer
 fire
 python-Levenshtein
+cmudict

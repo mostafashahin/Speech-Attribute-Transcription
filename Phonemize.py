@@ -28,6 +28,7 @@ class phonemization:
         
         # Ensure start and end markers match in length
         if not ind_s or len(ind_s) != len(ind_e):
+            text_split.append(('T',text))
             return text_split
         
         # Add text before the first noise segment, if any
