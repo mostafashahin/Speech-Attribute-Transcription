@@ -45,7 +45,7 @@ training:
 evaluation:
     #trained_model_path: #It's by default in working_dir/fine_tune/best
     spaces_between_special_tokens: true
-    metric_path: 'wer'
+    metric_path: 'metrics/wer.py'
     eval_extra_data: '/g/data/iv96/mostafa/datasets/librispeech_clean_dp'
     eval_extra_data_parts: 'test,validation'
     auto_eval: true
