@@ -5,7 +5,7 @@ librosa
 transformers[torch]
 speechbrain
 deep-phonemizer
-numpy==1.25.2
+numpy==1.26.4
 evaluate
 jiwer
 fire
