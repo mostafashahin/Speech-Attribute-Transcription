@@ -286,7 +286,6 @@ class transcribe_SA():
 
         
         output = {}
-        output['wav_file_path'] = audio_file
         output['Attributes'] = []
         output['Phoneme'] = {}
         
@@ -308,8 +307,10 @@ class transcribe_SA():
         #Process audio
         if isinstance(audio,str):
             y = self.read_audio_file(audio)
+            output['wav_file_path'] = audio_file
         else:
             y = audio
+            output['wav_file_path'] = "Streaming"
         self.logits = self.get_logits(y)
         
         for att in target_attributes:
