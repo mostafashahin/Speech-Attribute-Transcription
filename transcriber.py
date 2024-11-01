@@ -279,7 +279,7 @@ class transcribe_SA():
 
     
     
-    def transcribe(self, audio_file, 
+    def transcribe(self, audio, 
                    attributes='all', 
                    phonological_matrix_file = None, 
                    human_readable = True):
@@ -306,7 +306,10 @@ class transcribe_SA():
             raise ValueError("Invalid attributes")
 
         #Process audio
-        y = self.read_audio_file(audio_file)
+        if isinstance(audio,str):
+            y = self.read_audio_file(audio)
+        else:
+            y = audio
         self.logits = self.get_logits(y)
         
         for att in target_attributes:
