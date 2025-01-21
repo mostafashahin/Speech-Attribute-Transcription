@@ -5,7 +5,7 @@ import yaml
 import json
 import torch
 import librosa
-from transformers import Wav2Vec2CTCTokenizer, Wav2Vec2Processor, Wav2Vec2ForCTC
+from transformers import Wav2Vec2CTCTokenizer, Wav2Vec2Processor, Wav2Vec2ForCTC, WavLMForCTC, HubertForCTC
 import transformers
 import pandas as pd
 from datasets import load_from_disk, DatasetDict
@@ -24,9 +24,10 @@ console_handler.setLevel(logging.ERROR)
 
 logger.addHandler(console_handler)
 
+SUPPORTED_MODELS = ['WavLM','WAV2VEC2','HuBERT']
 
 class transcribe_SA():
-    def __init__(self, model_path, verbose=0):
+    def __init__(self, model_path, model_type="WAV2VEC2", verbose=0):
         if verbose == 0:
             logger.setLevel(logging.ERROR)
             transformers.logging.set_verbosity_error()
@@ -50,6 +51,7 @@ class transcribe_SA():
             self.device = torch.device('cpu')
             self.n_devices = 1
         self.model_path = model_path
+        self.model_type = model_type
         self.load_model()
         self.get_available_attributes()
         self.get_att_binary_group_indexs()
@@ -60,7 +62,15 @@ class transcribe_SA():
             raise FileNotFoundError
 
         self.processor = Wav2Vec2Processor.from_pretrained(self.model_path)
-        self.model = Wav2Vec2ForCTC.from_pretrained(self.model_path)
+        if self.model_type == "WAV2VEC2":
+            self.model = Wav2Vec2ForCTC.from_pretrained(self.model_path)
+        elif self.model_type == "WavLM":
+            self.model = WavLMForCTC.from_pretrained(self.model_path)
+        elif self.model_type == "HuBERT":
+            self.model = HubertForCTC.from_pretrained(self.model_path)
+        else:
+            logger.error(f'model type {self.model_type} not supported. Should be on of {" ".join(SUPPORTED_MODELS)}')
+            raise ValueError(f'Unsupported model type {self.model_type}')
         self.model.to(self.device)
         self.pad_token_id = self.processor.tokenizer.pad_token_id
         self.sampling_rate = self.processor.feature_extractor.sampling_rate

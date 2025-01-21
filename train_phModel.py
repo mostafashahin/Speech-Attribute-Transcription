@@ -7,7 +7,7 @@ from itertools import chain
 from os import makedirs
 from os.path import join
 import json
-from transformers import Wav2Vec2CTCTokenizer, Wav2Vec2FeatureExtractor, Wav2Vec2Processor, Wav2Vec2ForCTC, Trainer, TrainingArguments
+from transformers import Wav2Vec2CTCTokenizer, Wav2Vec2FeatureExtractor, Wav2Vec2Processor, Wav2Vec2ForCTC, HubertForCTC, Trainer, TrainingArguments
 from torch import nn
 import torch
 import torch.nn.functional as F
@@ -27,6 +27,8 @@ console_handler.setFormatter(formater)
 console_handler.setLevel(logging.INFO)
 
 logger.addHandler(console_handler)
+
+SUPPORTED_MODELS = ['WavLM','WAV2VEC2','HuBERT']
 
 
 @dataclass
@@ -147,6 +149,7 @@ class TrainPhModel():
         self.diphthongs_to_monophthongs_map_file = config['preprocessor'].get('diphthongs_to_monophthongs_map_file','')
 
         self.model_path = config['training']['model_path']
+        self.model_type = config['training'].get('model_type',"WAV2VEC2")
         self.gradient_checkpointing = config['training']['gradient_checkpointing']
         self.ctc_loss_reduction = config['training']['ctc_loss_reduction']
         self.freeze_feature_encoder = config['training']['freeze_feature_encoder']
@@ -349,14 +352,37 @@ class TrainPhModel():
 
         
         self.data_collator = DataCollatorCTCWithPadding(processor=self.processor, padding_labels=True, max_length_labels=None)
-        self.model = Wav2Vec2ForCTC.from_pretrained(
-            self.model_path,
-            gradient_checkpointing=self.gradient_checkpointing,
-            ctc_loss_reduction=self.ctc_loss_reduction,
-            pad_token_id=self.processor.tokenizer.pad_token_id,
-            vocab_size=self.processor.tokenizer.vocab_size,
-            cache_dir=self.cache_dir
-            ).to(self.device)
+
+        if self.model_type=='WAV2VEC2':
+            self.model = Wav2Vec2ForCTC.from_pretrained(
+                self.model_path,
+                gradient_checkpointing=self.gradient_checkpointing,
+                ctc_loss_reduction=self.ctc_loss_reduction,
+                pad_token_id=self.processor.tokenizer.pad_token_id,
+                vocab_size=self.processor.tokenizer.vocab_size,
+                cache_dir=self.cache_dir
+                ).to(self.device)
+        elif self.model_type=='WavLM':
+            self.model = WavLMForCTC.from_pretrained(
+                self.model_path,
+                gradient_checkpointing=self.gradient_checkpointing,
+                ctc_loss_reduction=self.ctc_loss_reduction,
+                pad_token_id=self.processor.tokenizer.pad_token_id,
+                vocab_size=self.processor.tokenizer.vocab_size,
+                cache_dir=self.cache_dir
+                ).to(self.device)
+        elif self.model_type == 'HuBERT':
+            self.model = HubertForCTC.from_pretrained(
+                self.model_path,
+                gradient_checkpointing=self.gradient_checkpointing,
+                ctc_loss_reduction=self.ctc_loss_reduction,
+                pad_token_id=self.processor.tokenizer.pad_token_id,
+                vocab_size=self.processor.tokenizer.vocab_size,
+                cache_dir=self.cache_dir
+                ).to(self.device)
+        else:
+            logger.error(f'model type {self.model_type} not supported. Should be on of {" ".join(SUPPORTED_MODELS)}')
+            raise ValueError(f'Unsupported model type {self.model_type}')
         
         if self.freeze_feature_encoder:
             self.model.freeze_feature_encoder()
@@ -428,7 +454,15 @@ class TrainPhModel():
         #value for evaluation->trained_model_path
         logger.info(f'Load Model for evaluation from {self.trained_model_path}')
         self.processor = Wav2Vec2Processor.from_pretrained(self.trained_model_path)
-        self.model = Wav2Vec2ForCTC.from_pretrained(self.trained_model_path)
+        if self.model_type == "WAV2VEC2":
+            self.model = Wav2Vec2ForCTC.from_pretrained(self.trained_model_path)
+        elif self.model_type == "WavLM":
+            self.model = WavLMForCTC.from_pretrained(self.trained_model_path)
+        elif self.model_type == "HuBERT":
+            self.model = HubertForCTC.from_pretrained(self.trained_model_path)
+        else:
+            logger.error(f'model type {self.model_type} not supported. Should be on of {" ".join(SUPPORTED_MODELS)}')
+            raise ValueError(f'Unsupported model type {self.model_type}')
 
         self.model.eval()
         #self.model.to(self.device)
