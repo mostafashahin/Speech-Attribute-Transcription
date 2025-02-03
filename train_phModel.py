@@ -7,7 +7,7 @@ from itertools import chain
 from os import makedirs
 from os.path import join
 import json
-from transformers import Wav2Vec2CTCTokenizer, Wav2Vec2FeatureExtractor, Wav2Vec2Processor, Wav2Vec2ForCTC, HubertForCTC, Trainer, TrainingArguments
+from transformers import Wav2Vec2CTCTokenizer, Wav2Vec2FeatureExtractor, Wav2Vec2Processor, Wav2Vec2ForCTC, HubertForCTC, WavLMForCTC, Trainer, TrainingArguments
 from torch import nn
 import torch
 import torch.nn.functional as F
