@@ -317,7 +317,7 @@ class transcribe_SA():
         #Process audio
         if isinstance(audio,str):
             y = self.read_audio_file(audio)
-            output['wav_file_path'] = audio_file
+            output['wav_file_path'] = audio
         else:
             y = audio
             output['wav_file_path'] = "Streaming"
