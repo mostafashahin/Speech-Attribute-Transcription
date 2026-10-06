@@ -1,0 +1,6 @@
+Phoneme_IPAtone,Phoneme_PinyinTon,Language,High,Mid-High,MidLow-Low-MidHigh,High-Low,neutral-tone,start-5,start-3,start-2,mid-1,end-5,end-4,end-1
+˥,1,CN,1,0,0,0,0,1,0,0,0,1,0,0
+˧˥,2,CN,0,1,0,0,0,0,1,0,0,1,0,0
+˧˩˧,3,CN,0,0,1,0,0,0,0,1,1,0,1,0
+˥˩,4,CN,0,0,0,1,0,1,0,0,0,0,0,1
+0,0,CN,0,0,0,0,1,0,0,0,0,0,0,0

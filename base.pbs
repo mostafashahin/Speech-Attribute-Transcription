@@ -1,0 +1,21 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=2:ngpus=1:mem=32gb
+#PBS -l walltime=6:00:00
+#PBS -M z5327748@ad.unsw.edu.au
+#PBS -m abe
+#PBS -j oe
+#PBS -N CVoice13_PhonemeBaseline
+#PBS -o Output_5e04_ipav2_tonev1_Baseline.log
+
+set -euo pipefail
+
+echo "Started at: $(date)"
+echo "Node: $(hostname)"
+
+module load python/3.10
+source /srv/scratch/z5327748/thesisB/bin/activate
+
+cd /home/z5327748/Jinghao_thesis
+python baseline.py --config_file baseline.yaml train --resume_from_checkpoint='/srv/scratch/z5327748/modelResult/ThesisA/cV13_phonemeOnly_xlsr53/fine_tune_phoneme/checkpoint-8000'
+
+echo "Finished at: $(date)"

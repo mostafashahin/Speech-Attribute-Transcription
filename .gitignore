@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Environments
+.venv/
+venv/
+env/
+
+# Training outputs
+*.ckpt
+*.pt
+*.pth
+*.nemo
+
+# Slurm
+slurm-*.out
+
+# Cache
+.cache/
+wandb/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store

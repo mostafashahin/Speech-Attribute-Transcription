@@ -1,0 +1,54 @@
+datasets:
+    data_path: '/srv/scratch/speechdata/speech-corpora/CommonVoice13_CN_v2'
+    train_part: 'train'
+    validation_part: 'validation'
+    test_part: 'test'
+    cache_dir: '/srv/scratch/z5327748/cache'
+
+phonological:
+    attribute_list_file: 'data/Mandarin_List_attr_IPAwithTone_V3_ToneV2_sep.txt'
+    phoneme2att_map_file: 'data/IPAwithTone_p2attr_V3_noDiph_ToneV2_sep.csv'
+    phonetic_alphabet: 'ipaDragon'
+
+preprocessor:
+    sampling_rate: 16000
+    do_normalize: true
+    return_attention_mask: false                     # false
+    phoneme_column: 'transcript_IPAwithTone'            # KEEYYYY
+    do_phonemize: false
+    num_proc: 1
+    max_length_in_sec: 15
+    save_preprocessed_data: false
+    load_from_preprocessed_data: false            # true
+    decouple_diphthongs: true                     # true NoDiph -> True,  withDiph -> False
+    diphthongs_to_monophthongs_map_file: 'data/Diphthongs_Mandarin_withTone.csv'
+
+training:
+    model_path: '/srv/scratch/speechdata/Jinghao_shared/w2v2_model/wav2vec2-large-xlsr-53'           # facebook/wav2vec2-large-robust
+    model_type: 'WAV2VEC2'
+    gradient_checkpointing: true
+    ctc_loss_reduction: 'mean'
+    freeze_feature_encoder: true
+    group_by_length: true
+    train_batch_size: 32
+    evaluation_strategy: 'steps'
+    enable_fp16: false                      # true
+    num_train_epochs: 15
+    save_steps: 4000
+    logging_steps: 2000
+    prediction_loss_only: true
+    learning_rate: 6e-04            # 1e-04
+    weight_decay: 0.005             # 0.005
+    warmup_ratio: 0.15               # 0.1
+    load_best_model_at_end: true
+    save_total_limit: 2
+
+evaluation:
+    spaces_between_special_tokens: true
+    metric_path: 'metrics/wer.py'
+    eval_extra_data: '/srv/scratch/speechdata/speech-corpora/CommonVoice13_CN_v2'
+    eval_extra_data_parts: 'test'
+    auto_eval: true
+
+output:
+    working_dir: '/srv/scratch/z5327748/modelResult/ThesisA/cV13_ipav2_tonev2_sep'

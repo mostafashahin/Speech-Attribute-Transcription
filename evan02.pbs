@@ -1,0 +1,15 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=2:ngpus=1:mem=32gb
+#PBS -l walltime=6:00:00
+#PBS -M z5327748@ad.unsw.edu.au
+#PBS -m abe
+#PBS -j oe
+#PBS -N CVoice13_ipav1_tonev2_6e04_sep
+#PBS -o Output_6e04_ipav1_tonev2_sep_newV2.log
+
+
+module load python/3.10
+source /srv/scratch/z5327748/thesisB/bin/activate
+
+cd /home/z5327748/Jinghao_thesis
+python train.py --config_file=mandarin_katana_02.yaml train_SA_model --resume_from_checkpoint='/srv/scratch/z5327748/modelResult/ThesisA/cV13_ipav1_tonev2_sep/fine_tune/checkpoint-16000'
