@@ -1,4 +1,4 @@
-Phoneme_ipaDragon,Phoneme_pinyin,Language,Unaspirated,Aspirated,Voiceless,Voiced,Plosive,Bilabial,Nasal,dentolabial,Fricative,dental,Affricate,Alveolar,Lateral,Retroflex,alveolopalatal,Velar,Unrounded,Rounded,Front,Central,Back,Close,Close-Mid,Mid,Open-Mid,Open,High,High-Mid,Middle,Low-Mid,Low,neutral,approximant,labial-velar,labial-palatal,diphthong,earlySound,midSound,backSound,vowel,start-5,start-3,start-2,mid-1,mid-3,mid-4,mid-5,end-5,end-4,end-1
+Phoneme_ipaDragon,Phoneme_pinyin,Language,Unaspirated,Aspirated,Voiceless,Voiced,Plosive,Bilabial,Nasal,dentolabial,Fricative,dental,Affricate,Alveolar,Lateral,Retroflex,alveolopalatal,Velar,Unrounded,Rounded,Front,Central,Back,Close,Close-Mid,Mid,Open-Mid,Open,High,High-Mid,Middle,Low-Mid,Low,neutral,approximant,labial-velar,labial-palatal,diphthong,earlySound,midSound,backSound,vowel,onset-5,onset-3,onset-2,mid-1,mid-3,mid-4,mid-5,offset-5,offset-4,offset-1
 p,b,CN,1,0,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 pʰ,p,CN,0,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 m,m,CN,0,0,0,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -149,4 +149,3 @@ wei4,uei4,CN,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0
 ɑ2,a_22,CN,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,0,1,0,0
 ɑ3,a_23,CN,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,1,1,0,0,0,0,1,0
 ɑ4,a_24,CN,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,1
-
