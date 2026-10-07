@@ -340,18 +340,18 @@ class TrainSAModel():
             self.diphthongs_to_monophthongs_map = dict([(x.split(',')[0], ' '.join(x.split(',')[1:])) for x in f.read().splitlines()])
         
     def _decouple_diphthongs(self, batch):
-        # 1) token-level replace: 只替换“完整token”
+        # 1) Token-level replacement: only replace complete tokens.
         tokens = batch[self.phoneme_column].split()
         out = []
         for t in tokens:
             out.append(self.diphthongs_to_monophthongs_map.get(t, t))
 
-        # 2) 兜底：把裸数字 tone 拼回前一个 token（i 3 -> i3）
+        # 2) Fallback: append a standalone tone digit to the preceding token (i 3 -> i3).
         merged = []
         for t in out:
             if t.isdigit():
                 if not merged:
-                    merged.append(t)  # 或者直接 raise，看你想不想严格
+                    merged.append(t)  # Alternatively, raise here to enforce strict input validation.
                 else:
                     merged[-1] = merged[-1] + t
             else:
@@ -484,7 +484,7 @@ class TrainSAModel():
             # Online
             self.model = Wav2Vec2ForCTC.from_pretrained(
                 self.model_path,
-                use_safetensors=True,   # 有 safetensors 就优先用
+                use_safetensors=True,   # Prefer safetensors when available.
                 gradient_checkpointing=self.gradient_checkpointing,
                 ctc_loss_reduction=self.ctc_loss_reduction,
                 pad_token_id=self.processor.tokenizer.pad_token_id,
@@ -736,7 +736,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
 
 

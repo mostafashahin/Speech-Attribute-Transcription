@@ -39,8 +39,8 @@ training:
     eval_steps: 500
     prediction_loss_only: false
     learning_rate: 5.5e-04            # 1e-04
-    weight_decay: 0.005             # 0.005
-    warmup_ratio: 0.15               # 0.1
+    weight_decay: 0.005               # 0.005
+    warmup_ratio: 0.15               
     load_best_model_at_end: true
     save_total_limit: 1
 

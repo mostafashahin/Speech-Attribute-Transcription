@@ -419,7 +419,7 @@ class TrainPhonemeCTC:
                 p_seq = _ctc_collapse_and_remove_blanks(p_seq.tolist(), blank_id)
                 r_seq = [i for i in r_seq.tolist() if i != blank_id]
 
-                # (可选) 过滤掉 <unk>，看你要不要把 unk 当 error
+                # Optionally filter out <unk>, depending on whether it should count as an error.
                 # unk_id = tok.unk_token_id
                 # p_seq = [i for i in p_seq if i != unk_id]
                 # r_seq = [i for i in r_seq if i != unk_id]
@@ -521,4 +521,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

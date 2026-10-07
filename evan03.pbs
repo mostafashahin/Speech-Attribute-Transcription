@@ -12,4 +12,4 @@ module load python/3.10
 source /srv/scratch/z5327748/thesisB/bin/activate
 
 cd /home/z5327748/Jinghao_thesis
-python train.py --config_file=mandarin_katana_03.yaml train_SA_model --resume_from_checkpoint='/srv/scratch/z5327748/modelResult/ThesisA/cV13_ipav2_tonev1_new/fine_tune/checkpoint-16000' 
+python train.py --config_file=configs/mandarin_katana_03.yaml train_SA_model --resume_from_checkpoint='/srv/scratch/z5327748/modelResult/ThesisA/cV13_ipav2_tonev1_new/fine_tune/checkpoint-16000'
