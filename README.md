@@ -1,4 +1,7 @@
 # Speech-Attribute-Transcription
+
+# Jinghao: This Repo is not finished yet
+
 ## Training
 ```
 python3 train.py --config_file=config_libri_100_10epoch.yaml train_SA_model
