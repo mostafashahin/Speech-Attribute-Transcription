@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional, Union
 from datasets import load_dataset, load_metric, ClassLabel, load_from_disk, DatasetDict, concatenate_datasets, Dataset
 import evaluate
 import re
+import loss_weighting  # Thesis C exp003: per-group loss weighting
 
 logger = logging.getLogger(__name__)
 # Setup logging
@@ -98,6 +99,9 @@ class DataCollatorMCTCWithPadding:
 class SCTCTrainer(Trainer):
     def __init__(self, **kargs):
         self.group_ids = kargs.pop('group_ids') #List with number of items in each group
+        # exp003: None == original behaviour. Applied only while model.training,
+        # so eval_loss (and therefore best-checkpoint selection) stays unweighted.
+        self.group_weights = kargs.pop('group_weights', None)
         super(SCTCTrainer, self).__init__(**kargs)
 
     def compute_loss(self, model, inputs, return_outputs=False):
@@ -131,6 +135,8 @@ class SCTCTrainer(Trainer):
             flattened_targets = flattened_targets.to(self.args.device)
             input_lengths = model._get_feat_extract_output_lengths(torch.ones_like(inputs.get('input_values'),dtype=torch.int32).sum(-1))
             loss = F.ctc_loss(log_probs, flattened_targets, input_lengths, target_lengths, blank=model.config.pad_token_id, zero_infinity=model.config.ctc_zero_infinity, reduction=model.config.ctc_loss_reduction)
+            if self.group_weights is not None and model.training:  # Thesis C exp003: per-group loss weighting
+                loss = loss * self.group_weights[i]
             all_losses.append(loss)
         sctc_loss = sum(all_losses) #TODO: consider average over number of groups NOT VALID
         #TODO: consider reduction over input_lengths*target_lengths
@@ -172,6 +178,8 @@ class TrainSAModel():
         self.validation_part = [x.strip() for x in config['datasets']['validation_part'].split(',')]
         self.test_part = [x.strip() for x in config['datasets']['test_part'].split(',')]
         self.cache_dir = config['datasets']['cache_dir']
+        self.loss_weighting = loss_weighting.read_config(config)  # Thesis C exp003: per-group loss weighting
+        self.group_weights = None
 
         self.attribute_list_file = config['phonological']['attribute_list_file']
         self.phoneme2att_map_file = config['phonological']['phoneme2att_map_file']
@@ -509,6 +517,7 @@ class TrainSAModel():
         self.trainer = SCTCTrainer(
             model=self.model,
             group_ids=self.get_att_group_indx_map(bTraining=True),
+            group_weights=self.group_weights,  # Thesis C exp003: per-group loss weighting
             data_collator=self.data_collator,
             args=self.training_args,
             #compute_metrics=compute_metrics, #Need to be added
@@ -532,6 +541,7 @@ class TrainSAModel():
         self.create_phoneme_binary_mappers()
         self.create_processor()
         self.load_data()
+        self.group_weights = loss_weighting.build_weights(self, self.loss_weighting)  # Thesis C exp003: per-group loss weighting
         self.prepare_trainer()
         self.trainer.train(resume_from_checkpoint=resume_from_checkpoint)
         self.save_model()
